@@ -1,6 +1,6 @@
-const Filter = ({ onSubmit, value, onValueChange }) => {
+const Filter = ({ value, onValueChange }) => {
   return (
-    <form onSubmit={onSubmit}>
+    <form>
       <div>
         filter shown with
         <input required type="text" value={value} onChange={onValueChange} />

@@ -1,32 +1,81 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import Filter from './components/Filter';
+import Notification from './components/Notification';
 import PersonForm from './components/PersonForm';
 import Persons from './components/Persons';
+import personService from './services/persons';
+import './App.css';
 
 const App = () => {
   const [persons, setPersons] = useState([]);
   const [newName, setNewName] = useState('');
   const [newQuery, setNewQuery] = useState('');
   const [newNumber, setNewNumber] = useState('');
-  const [search, setSearch] = useState(persons);
+  const [notificationMessage, setNotificationMessage] = useState(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    axios
-      .get('http://localhost:3001/persons')
-      .then((res) => setPersons(res.data));
-    console.log(persons);
+    personService.getAll().then((data) => {
+      setPersons(data);
+    });
   }, []);
+
+  const clearMessage = () =>
+    setTimeout(() => {
+      setNotificationMessage(null);
+      setError(false);
+    }, 3000);
+
+  const clearFields = () => {
+    setNewName('');
+    setNewNumber('');
+    clearMessage();
+  };
 
   const addNewPerson = (evt) => {
     evt.preventDefault();
-    const isNameInList = persons.find((person) => person.name === newName);
-    if (isNameInList) {
-      return alert(`${newName} is already added to the phonebook`);
+    const duplicatePerson = persons.find((person) => person.name === newName);
+    if (duplicatePerson) {
+      if (
+        window.confirm(
+          `${duplicatePerson.name} is already added to the phonebook. Do you want to replace the old number with a new one?`
+        )
+      ) {
+        const updatedPerson = { ...duplicatePerson, number: newNumber };
+        return personService
+          .update(duplicatePerson.id, updatedPerson)
+          .then((data) => {
+            setPersons(
+              persons.map((person) => {
+                return person.id === data.id ? updatedPerson : person;
+              })
+            );
+            setNotificationMessage(
+              `The number of ${newName} has been updated: ${newNumber}`
+            );
+            clearFields();
+          })
+          .catch((_) => {
+            setError(true);
+            setPersons(
+              persons.filter((person) => person.id !== duplicatePerson.id)
+            );
+            setNotificationMessage(
+              `Information of ${duplicatePerson.name} has already been deleted from the server`
+            );
+            clearMessage();
+          });
+      }
     }
-    setPersons(persons.concat({ name: newName, number: newNumber }));
-    setNewName('');
-    setNewNumber('');
+
+    const newPerson = { name: newName, number: newNumber };
+    personService.create(newPerson).then((data) => {
+      setPersons(persons.concat(data));
+      setNotificationMessage(
+        `New person ${newName}: ${newNumber} has been added`
+      );
+      clearFields();
+    });
   };
 
   const changeNewName = (evt) => {
@@ -35,29 +84,46 @@ const App = () => {
   const changeNewNumber = (evt) => {
     setNewNumber(evt.target.value);
   };
-  const changeNewQuery = (evt) => {
+
+  const searchPersons = (evt) => {
     setNewQuery(evt.target.value);
   };
 
-  const searchPersons = (evt) => {
-    evt.preventDefault();
-    const result = newQuery
+  const filterResult =
+    newQuery !== ''
       ? persons.filter((person) =>
           person.name.toLowerCase().includes(newQuery.toLowerCase())
         )
       : persons;
 
-    setSearch(result);
+  const deletePerson = (id) => {
+    const person = persons.find((person) => person.id === id);
+    if (window.confirm(`Do you really want to delete ${person.name}?`)) {
+      personService
+        .deleteNote(id)
+        .then((_) => {
+          setPersons(persons.filter((person) => person.id !== id));
+          setNotificationMessage(
+            `${person.name}: ${person.number} has been deleted!`
+          );
+          clearMessage();
+        })
+        .catch((_) => {
+          setError(true);
+          setPersons(persons.filter((person) => person.id !== id));
+          setNotificationMessage(
+            `Information of ${person.name} has already been deleted from the server`
+          );
+          clearMessage();
+        });
+    }
   };
 
   return (
     <div>
+      <Notification message={notificationMessage} error={error} />
       <h2>Phonebook</h2>
-      <Filter
-        value={newQuery}
-        onValueChange={changeNewQuery}
-        onSubmit={searchPersons}
-      />
+      <Filter value={newQuery} onValueChange={searchPersons} />
       <h2>Add a new</h2>
       <PersonForm
         name={newName}
@@ -67,7 +133,7 @@ const App = () => {
         onSubmit={addNewPerson}
       />
       <h2>Numbers</h2>
-      <Persons persons={search} />
+      <Persons persons={filterResult} onDelete={deletePerson} />
     </div>
   );
 };
