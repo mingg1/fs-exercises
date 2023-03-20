@@ -1,4 +1,5 @@
 import express from 'express';
+import morgan from 'morgan';
 
 const app = express();
 const PORT = 3001;
@@ -25,6 +26,21 @@ let phonebook = [
   },
 ];
 
+app.use(
+  morgan((tokens, req, res) => {
+    console.log(req.body);
+    return [
+      tokens.method(req, res),
+      tokens.url(req, res),
+      tokens.status(req, res),
+      tokens.res(req, res, 'content-length'),
+      '-',
+      tokens['response-time'](req, res),
+      'ms',
+      JSON.stringify(req.body),
+    ].join(' ');
+  })
+);
 app.use(express.json());
 app.get('/api/persons', (req, res) => {
   return res.json(phonebook);
@@ -65,3 +81,7 @@ app.get('/info', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+const unknownEndpoint = (request, response) => {
+  response.status(404).send({ error: 'unknown endpoint' });
+};
+app.use(unknownEndpoint);
