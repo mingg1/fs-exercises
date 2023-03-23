@@ -2,7 +2,7 @@ import express from 'express';
 import morgan from 'morgan';
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 let phonebook = [
   {
     id: 1,
@@ -28,7 +28,6 @@ let phonebook = [
 
 app.use(
   morgan((tokens, req, res) => {
-    console.log(req.body);
     return [
       tokens.method(req, res),
       tokens.url(req, res),
@@ -42,6 +41,8 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(express.static('build'));
+
 app.get('/api/persons', (req, res) => {
   return res.json(phonebook);
 });
