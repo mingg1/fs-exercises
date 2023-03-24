@@ -1,30 +1,12 @@
+import dotenv from 'dotenv';
 import express from 'express';
 import morgan from 'morgan';
+import middlewares from './middlewares/middlewares.js';
+import Person from './models/phonebook.js';
 
+dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
-let phonebook = [
-  {
-    id: 1,
-    name: 'Arto Hellas',
-    number: '040-123456',
-  },
-  {
-    id: 2,
-    name: 'Ada Lovelace',
-    number: '39-44-5323523',
-  },
-  {
-    id: 3,
-    name: 'Dan Abramov',
-    number: '12-43-234345',
-  },
-  {
-    id: 4,
-    name: 'Mary Poppendieck',
-    number: '39-23-6423122',
-  },
-];
 
 app.use(
   morgan((tokens, req, res) => {
@@ -40,18 +22,20 @@ app.use(
     ].join(' ');
   })
 );
-app.use(express.json());
 app.use(express.static('build'));
+app.use(express.json());
 
 app.get('/api/persons', (req, res) => {
-  return res.json(phonebook);
+  Person.find({}).then((phonebook) => res.json(phonebook));
 });
+
 app.post('/api/persons', (req, res) => {
-  const newPerson = req.body;
-  if (!newPerson['number']) {
+  const { number, name } = req.body;
+
+  if (number) {
     return res.status(400).json({ error: 'Number is required' });
   }
-  if (!newPerson['name']) {
+  if (name) {
     return res.status(400).json({ error: 'Name is required' });
   }
   const sameName = phonebook.find((person) => person.name === newPerson.name);
@@ -59,30 +43,47 @@ app.post('/api/persons', (req, res) => {
     return res.status(400).json({ error: 'Name must be unique' });
   }
 
-  newPerson.id = Math.floor(Math.random() * 100) + (phonebook.length + 1);
-  phonebook = phonebook.concat(req.body);
-  return res.json(newPerson);
+  const person = new Person({ name, number });
+  person.save().then((newPerson) => {
+    return res.json(newPerson);
+  });
 });
-app.get('/api/persons/:id', (req, res) => {
+app.get('/api/persons/:id', (req, res, next) => {
   const { id } = req.params;
-  const info = phonebook.find((person) => person.id === +id);
-  return info ? res.json(info) : res.status(404).end();
+  Person.findById(id)
+    .then((person) => {
+      if (person) {
+        return res.json(person);
+      } else {
+        return res.status(404).end();
+      }
+    })
+    .catch((err) => {
+      return next(err);
+    });
 });
-app.delete('/api/persons/:id', (req, res) => {
+app.put('/api/persons/:id', (req, res, next) => {
   const { id } = req.params;
-  phonebook = phonebook.filter((person) => person.id !== +id);
-  return res.status(204).end();
+  Person.findByIdAndUpdate(id, req.body, { new: true })
+    .then((updated) => res.json(updated))
+    .catch((err) => next(err));
+});
+app.delete('/api/persons/:id', (req, res, next) => {
+  const { id } = req.params;
+  Person.findByIdAndDelete(id)
+    .then((_) => res.status(204).end())
+    .catch((err) => next(err));
 });
 app.get('/info', (req, res) => {
-  return res.send(
-    `<p>Phonebook has info for ${phonebook.length} people.</p>
-    <p>${new Date()}</p>`
+  Person.find({}).then((phonebook) =>
+    res.send(`<p>Phonebook has info for ${phonebook.length} people.</p>
+  <p>${new Date()}</p>`)
   );
 });
+
+app.use(middlewares.unknownEndpoint);
+app.use(middlewares.errorHandler);
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-const unknownEndpoint = (request, response) => {
-  response.status(404).send({ error: 'unknown endpoint' });
-};
-app.use(unknownEndpoint);
