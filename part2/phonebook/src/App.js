@@ -69,13 +69,19 @@ const App = () => {
     }
 
     const newPerson = { name: newName, number: newNumber };
-    personService.create(newPerson).then((data) => {
-      setPersons(persons.concat(data));
-      setNotificationMessage(
-        `New person ${newName}: ${newNumber} has been added`
-      );
-      clearFields();
-    });
+    personService
+      .create(newPerson)
+      .then((data) => {
+        setPersons(persons.concat(data));
+        setNotificationMessage(
+          `New person ${newName}: ${newNumber} has been added`
+        );
+      })
+      .catch((err) => {
+        setNotificationMessage(err);
+        setError(true);
+      })
+      .finally(() => clearFields());
   };
 
   const changeNewName = (evt) => {
