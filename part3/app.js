@@ -4,11 +4,12 @@ import https from 'https';
 import morgan from 'morgan';
 import middlewares from './middlewares/middlewares.js';
 import Person from './models/phonebook.js';
+import cors from 'cors';
 
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
-
+app.use(cors());
 app.use(
   morgan((tokens, req, res) => {
     return [
