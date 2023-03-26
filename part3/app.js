@@ -30,7 +30,7 @@ app.get('/api/persons', (req, res) => {
   Person.find({}).then((phonebook) => res.json(phonebook));
 });
 
-app.post('/api/persons', (req, res) => {
+app.post('/api/persons', (req, res, next) => {
   const { number, name } = req.body;
 
   if (!number) {
@@ -62,9 +62,12 @@ app.post('/api/persons', (req, res) => {
       return putRequest.end();
     }
 
-    new Person({ name, number }).save().then((newPerson) => {
-      return res.json(newPerson);
-    });
+    new Person({ name, number })
+      .save()
+      .then((newPerson) => {
+        return res.json(newPerson);
+      })
+      .catch((err) => next(err));
   });
 });
 
@@ -84,7 +87,11 @@ app.get('/api/persons/:id', (req, res, next) => {
 });
 app.put('/api/persons/:id', (req, res, next) => {
   const { id } = req.params;
-  Person.findByIdAndUpdate(id, req.body, { new: true })
+  Person.findByIdAndUpdate(id, req.body, {
+    new: true,
+    runValidators: true,
+    context: 'query',
+  })
     .then((updated) => res.json(updated))
     .catch((err) => next(err));
 });
