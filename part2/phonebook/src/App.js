@@ -24,7 +24,7 @@ const App = () => {
     setTimeout(() => {
       setNotificationMessage(null);
       setError(false);
-    }, 3000);
+    }, 5000);
 
   const clearFields = () => {
     setNewName('');
@@ -78,7 +78,7 @@ const App = () => {
         );
       })
       .catch((err) => {
-        setNotificationMessage(err);
+        setNotificationMessage(err.response.data.error);
         setError(true);
       })
       .finally(() => clearFields());
