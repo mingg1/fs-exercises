@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import express from 'express';
+import https from 'https';
 import morgan from 'morgan';
 import middlewares from './middlewares/middlewares.js';
 import Person from './models/phonebook.js';
@@ -32,22 +33,41 @@ app.get('/api/persons', (req, res) => {
 app.post('/api/persons', (req, res) => {
   const { number, name } = req.body;
 
-  if (number) {
+  if (!number) {
     return res.status(400).json({ error: 'Number is required' });
   }
-  if (name) {
+  if (!name) {
     return res.status(400).json({ error: 'Name is required' });
   }
-  const sameName = phonebook.find((person) => person.name === newPerson.name);
-  if (sameName) {
-    return res.status(400).json({ error: 'Name must be unique' });
-  }
 
-  const person = new Person({ name, number });
-  person.save().then((newPerson) => {
-    return res.json(newPerson);
+  Person.findOne({ name }).then((person) => {
+    if (person) {
+      const putRequest = https.request(
+        {
+          host: req.hostname,
+          port: PORT,
+          path: `/api/persons/${person.id}`,
+          method: 'put',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+        (putRes) => {
+          // get response of put request from here
+          putRes.on('data', (personData) => res.json(JSON.parse(personData)));
+        }
+      );
+
+      putRequest.write(JSON.stringify({ number, name }));
+      return putRequest.end();
+    }
+
+    new Person({ name, number }).save().then((newPerson) => {
+      return res.json(newPerson);
+    });
   });
 });
+
 app.get('/api/persons/:id', (req, res, next) => {
   const { id } = req.params;
   Person.findById(id)
