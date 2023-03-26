@@ -29,7 +29,6 @@ const App = () => {
   const clearFields = () => {
     setNewName('');
     setNewNumber('');
-    clearMessage();
   };
 
   const addNewPerson = (evt) => {
@@ -55,16 +54,11 @@ const App = () => {
             );
             clearFields();
           })
-          .catch((_) => {
+          .catch((err) => {
+            setNotificationMessage(err.response.data.error);
             setError(true);
-            setPersons(
-              persons.filter((person) => person.id !== duplicatePerson.id)
-            );
-            setNotificationMessage(
-              `Information of ${duplicatePerson.name} has already been deleted from the server`
-            );
-            clearMessage();
-          });
+          })
+          .finally(() => clearMessage());
       }
     }
 
@@ -81,7 +75,7 @@ const App = () => {
         setNotificationMessage(err.response.data.error);
         setError(true);
       })
-      .finally(() => clearFields());
+      .finally(() => clearMessage());
   };
 
   const changeNewName = (evt) => {
@@ -112,7 +106,6 @@ const App = () => {
           setNotificationMessage(
             `${person.name}: ${person.number} has been deleted!`
           );
-          clearMessage();
         })
         .catch((_) => {
           setError(true);
@@ -120,8 +113,8 @@ const App = () => {
           setNotificationMessage(
             `Information of ${person.name} has already been deleted from the server`
           );
-          clearMessage();
-        });
+        })
+        .finally(() => clearMessage());
     }
   };
 
