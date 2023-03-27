@@ -6,13 +6,13 @@
   "scripts": {
     "dev": "nodemon app",
     "start": "node app.js",
+    "lint": "eslint .",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build:ui": "rm -rf build && cd ../frontend && npm run build && cp -r build ../backend",
     "deploy:full": "npm run build:ui && git add . && git commit -m uibuild && git push"
   },
   "author": "Minji Choi",
   "license": "ISC",
-  "type": "module",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
@@ -22,5 +22,6 @@
   },
   "devDependencies": {
     "nodemon": "^2.0.21"
-  }
+  },
+  "sourceType": "module"
 }

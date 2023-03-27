@@ -99,7 +99,7 @@ app.put('/api/persons/:id', (req, res, next) => {
 app.delete('/api/persons/:id', (req, res, next) => {
   const { id } = req.params;
   Person.findByIdAndDelete(id)
-    .then((_) => res.status(204).end())
+    .then(() => res.status(204).end())
     .catch((err) => next(err));
 });
 app.get('/info', (req, res) => {
